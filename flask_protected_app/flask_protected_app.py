@@ -9,6 +9,7 @@ from flask import (
     session,
     url_for
 )
+import os
 import sys
 from flask.globals import _request_ctx_stack
 from jinja2 import TemplateNotFound
@@ -76,14 +77,16 @@ def hello(**kwargs):
 def foo():
     return 'BAR.'
 
-app = StarrySsoFlask(protected_app, __name__)
-app.config['SECRET_KEY'] = 'Fdsfada'
-app.config['SESSION_COOKIE_SECURE'] = False
-app.config['SESSION_COOKIE_PATH'] = '/'
-app.config['SESSION_COOKIE_DOMAIN'] = 'devtest.realriven.com'
+dirpath = os.path.dirname(os.path.abspath(__file__))
 
-app.config['LOGIN_STATUS_COOKIE_NAME'] = 'starry_sso_logged_in'
-app.config['LOGIN_USERNAME_COOKIE_NAME'] = 'starry_sso_logged_in_as'
+app = StarrySsoFlask(protected_app, __name__)
+app.config.from_pyfile(os.path.join(dirpath, 'config.py'))
+
+@app.context_processor
+def inject_app_name():
+    return {
+        'app_name': app.config['APP_NAME']
+    }
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
