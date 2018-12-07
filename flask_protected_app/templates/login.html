@@ -5,24 +5,26 @@ Log In
 {% endblock %}
 
 {% block body %}
-<div class="login-box-container">
-        <div class="login-box">
-            <div class="cta">
-                Please enter your username and password to proceed.
+<form action="/login" method="POST">
+    <div class="login-box-container">
+            <div class="login-box">
+                <div class="cta">
+                    Please enter your username and password to proceed.
+                </div>
+                <div class="login-body">
+                    <div class="username">
+                        <label for="username">Username:</label>
+                        <input id="username" name="username" type="text" />
+                    </div>
+                    <div class="password">
+                        <label for="password">Password:</label>
+                        <input id="password" name="password" type="password" />
+                    </div>
+                    <div class="login-button-container">
+                        <button class="submit-button" type="submit">Log In</button>
+                    </div>
+                </div>
             </div>
-            <div class="login-body">
-                <div class="username">
-                    <label for="username">Username:</label>
-                    <input id="username" type="text" />
-                </div>
-                <div class="password">
-                    <label for="password">Password:</label>
-                    <input id="password" type="password" />
-                </div>
-                <div class="login-button-container">
-                    <button class="submit-button" type="submit">Log In</button>
-                </div>
-            </div>
-        </div>
-</div>
+    </div>
+</form>
 {% endblock %}
