@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='flask_protector_app',
-      version='1.0.1',
+      version='1.0.2',
       description='A Flask app to wrap other Flask apps, providing a login layer',
       url='http://github.com/starryexpanse/flask-protector-app',
       author='Philip Peterson',
