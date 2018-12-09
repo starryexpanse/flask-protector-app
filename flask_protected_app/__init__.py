@@ -1,5 +1,4 @@
 from functools import partial
-#from http.cookies import BaseCookie
 from Cookie import BaseCookie
 from werkzeug.http import parse_cookie
 from flask import (
@@ -19,19 +18,15 @@ import sys
 from flask.globals import _request_ctx_stack
 from jinja2 import TemplateNotFound
 
-class ProtectorRequestContext(RequestContext):
-    def __init__(self, protector_app, app, environ):
-        RequestContext.__init__(self, app, environ)
-
 class FlaskProtectorApp(Flask):
     session_cookie_name = 'flaskprotectorappsession'
 
     def __init__(self, wrapped_app, *args, **kwargs):
         Flask.__init__(self, *args, **kwargs)
         self.wrapped_app = wrapped_app
+        self.config['SESSION_COOKIE_SECURE'] = False
 
     def verify_login(self, username, password, session=None):
-        return password == 'pw'
         raise NotImplementedError('verify_login not defined')
 
     def set_logged_in(self, session, logged_in, response, username=None):
@@ -59,8 +54,7 @@ class FlaskProtectorApp(Flask):
         req = ctx.request
         charset = req.charset
 
-        session = ctx.session # self.session_interface.open_session(self, req)
-        # ctx.session = session
+        session = ctx.session
         inner_ctx = ctx
         should_proxy = self.get_logged_in(session) 
 
@@ -73,10 +67,19 @@ class FlaskProtectorApp(Flask):
 
         if should_proxy:
             if 'HTTP_COOKIE' in new_environ:
+                # Scrub the environment of any trace of the protector's cookie,
+                # because otherwise the inner app will see it and probably try
+                # to send Set-Cookie headers to refresh the session, effectively undoing
+                # any changes the protector wants to make to it.
+                
                 parsed_cookie = BaseCookie()
                 parsed_cookie.load(environ['HTTP_COOKIE']) # TODO encoding?
-                del parsed_cookie['flaskprotectorappsession']
-                new_environ['HTTP_COOKIE'] = str(parsed_cookie).partition('Set-Cookie: ')[2]
+                del parsed_cookie[self.session_cookie_name]
+                stringified_cookie = str(parsed_cookie).partition('Set-Cookie: ')[2]
+                if stringified_cookie:
+                    new_environ['HTTP_COOKIE'] = stringified_cookie
+                else:
+                    del new_environ['HTTP_COOKIE']
 
             inner_ctx = type(ctx)(
                 self.wrapped_app,
@@ -109,65 +112,33 @@ class FlaskProtectorApp(Flask):
                 return result
             ctx.auto_pop(error)
 
-class MyProtectedApp(Flask):
-    pass
+def setup_routes(app):
+    @app.context_processor
+    def inject_app_name():
+        return {
+            'app_name': app.config.get('APP_NAME', None)
+        }
 
+    @app.route('/login', methods=['GET', 'POST'])
+    def login():
+        if request.method == 'POST':
+            verify_login = request.environ['flask_protector_app.verify_login']
+            get_logged_in_as = request.environ['flask_protector_app.get_logged_in_as']
+            set_logged_in = request.environ['flask_protector_app.set_logged_in']
 
-protected_app = MyProtectedApp('Protie')
+            username = request.form["username"]
+            password = request.form["password"]
 
-@protected_app.route('/logout', methods=['GET', 'POST'])
-def logout():
-    response = redirect('/login')
-    set_logged_in = request.environ['flask_protector_app.set_logged_in']
-    set_logged_in(False, response, None)
-    return response
+            if (verify_login(username, password)):
+                response = Response(render_template('redirect.html'))
+                set_logged_in(True, response, username)
+                return response
 
-@protected_app.route('/', defaults={'path': ''})
-@protected_app.route('/<path:path>')
-def hello(**kwargs):
-    get_logged_in_as = request.environ['flask_protector_app.get_logged_in_as']
-    username = get_logged_in_as()
-    return 'hello werld : ) yer in, %s' % username
+            return render_template('login.html') # TODO failed message
+        else:
+            return render_template('login.html')
 
-@protected_app.route('/foo')
-def foo():
-    return 'BAR.'
-
-dirpath = os.path.dirname(os.path.abspath(__file__))
-
-app = FlaskProtectorApp(protected_app, __name__)
-app.config.from_pyfile(os.path.join(dirpath, 'config.py'))
-
-@app.context_processor
-def inject_app_name():
-    return {
-        'app_name': app.config['APP_NAME']
-    }
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        verify_login = request.environ['flask_protector_app.verify_login']
-        get_logged_in_as = request.environ['flask_protector_app.get_logged_in_as']
-        set_logged_in = request.environ['flask_protector_app.set_logged_in']
-
-        username = request.form["username"]
-        password = request.form["password"]
-
-        if (verify_login(username, password)):
-            response = Response(render_template('redirect.html'))
-            set_logged_in(True, response, username)
-            return response
-
-        return render_template('login.html') # TODO failed message
-    else:
-        return render_template('login.html')
-
-
-
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
-def login_redirect(**kwargs):
-    return redirect(url_for('login'))
-
-app.run(port=3000, debug=True, host='0.0.0.0')
+    @app.route('/', defaults={'path': ''})
+    @app.route('/<path:path>')
+    def login_redirect(**kwargs):
+        return redirect(url_for('login'))

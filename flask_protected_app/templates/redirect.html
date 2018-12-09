@@ -1,5 +1,19 @@
 {% extends "base.html" %}
 
+{% block title %}
+Successfully Logged In
+{% endblock %}
+
 {% block body %}
-success. <a href="/foo">go to /foo</a>
+You have successfully signed in. Redirecting you in <span id='countdown'>3</span>...
+<script>
+    var countdown = 3;
+    window.setInterval(() => {
+        countdown--;
+        document.querySelector('#countdown').innerHTML = countdown;
+        if (countdown === 0) {
+            window.location.replace('/');
+        }
+    }, 1000);
+</script>
 {% endblock %}
