@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='flask_protector_app',
-      version='1.0.2',
+      version='1.0.4',
       description='A Flask app to wrap other Flask apps, providing a login layer',
       url='http://github.com/starryexpanse/flask-protector-app',
       author='Philip Peterson',
@@ -15,4 +15,8 @@ setup(name='flask_protector_app',
            'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
            'Topic :: Internet :: WWW/HTTP :: WSGI :: Application',
       ),
+      install_requires=[
+            'flask>=1.0.2',
+            'jinja2'
+      ],
       zip_safe=False)

@@ -1,5 +1,9 @@
+try:
+    from http.cookies import BaseCookie
+except ImportError:
+    from Cookie import BaseCookie
+
 from functools import partial
-from Cookie import BaseCookie
 from werkzeug.http import parse_cookie
 from flask import (
     Flask,
