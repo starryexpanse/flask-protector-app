@@ -37,7 +37,7 @@ class FlaskProtectorApp(Flask):
             FileSystemLoader([
                 template_dir
             ])
-        )
+        ])
 
     def verify_login(self, username, password, session=None):
         raise NotImplementedError('verify_login not defined')
