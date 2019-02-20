@@ -20,7 +20,10 @@ from flask.ctx import RequestContext
 import os
 import sys
 from flask.globals import _request_ctx_stack
-from jinja2 import TemplateNotFound
+from jinja2 import FileSystemLoader, ChoiceLoader, TemplateNotFound
+
+
+template_dir = os.path.abspath(os.path.join(__file__, '..', 'templates'))
 
 class FlaskProtectorApp(Flask):
     session_cookie_name = 'flaskprotectorappsession'
@@ -29,6 +32,12 @@ class FlaskProtectorApp(Flask):
         Flask.__init__(self, *args, **kwargs)
         self.wrapped_app = wrapped_app
         self.config['SESSION_COOKIE_SECURE'] = False
+        self.jinja_loader = ChoiceLoader([
+            self.jinja_loader,
+            FileSystemLoader([
+                template_dir
+            ])
+        )
 
     def verify_login(self, username, password, session=None):
         raise NotImplementedError('verify_login not defined')
